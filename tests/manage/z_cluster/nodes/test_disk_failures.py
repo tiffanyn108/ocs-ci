@@ -2,9 +2,7 @@ import logging
 import pytest
 
 from ocs_ci.ocs import node, constants
-from ocs_ci.framework.testlib import (
-    tier4, ignore_leftovers, ManageTest, aws_platform_required
-)
+from ocs_ci.framework.testlib import tier4, ignore_leftovers, ManageTest
 from tests.sanity_helpers import Sanity
 from tests.helpers import wait_for_ct_pod_recovery
 
@@ -13,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 @tier4
 @ignore_leftovers
-@aws_platform_required
 class TestDetachAttachWorkerVolume(ManageTest):
     """
     Test class for detach and attach worker volume
@@ -63,12 +60,11 @@ class TestDetachAttachWorkerVolume(ManageTest):
         """
         # Get a data volume
         data_volume = nodes.get_data_volumes()[0]
-
         # Get the worker node according to the volume attachment
         worker = nodes.get_node_by_attached_volume(data_volume)
 
         # Detach volume (logging is done inside the function)
-        nodes.detach_volume(data_volume)
+        nodes.detach_volume(data_volume, worker)
 
         # Validate cluster is still functional
         # In case the selected node that its volume disk was detached was the one
@@ -81,7 +77,7 @@ class TestDetachAttachWorkerVolume(ManageTest):
 
         # Wait for worker volume to be re-attached automatically to the node
         assert nodes.wait_for_volume_attach(data_volume), (
-            f"Volume {data_volume.id} failed to be re-attached to a worker node"
+            "Volume failed to be re-attached to a worker node"
         )
 
         # Restart the instance so the volume will get re-mounted
@@ -111,7 +107,9 @@ class TestDetachAttachWorkerVolume(ManageTest):
 
         for worker_and_volume in workers_and_volumes:
             # Detach the volume (logging is done inside the function)
-            nodes.detach_volume(worker_and_volume['volume'])
+            nodes.detach_volume(
+                worker_and_volume['volume'], nodes.detach_volume(worker_and_volume['worker'])
+            )
 
         for worker_and_volume in workers_and_volumes:
             # Wait for worker volume to be re-attached automatically to the node
